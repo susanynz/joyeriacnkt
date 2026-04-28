@@ -26,11 +26,11 @@ export default function AdminProductosPage() {
   useEffect(() => {
     setReady(true);
     const t = localStorage.getItem("admin_token");
-    if (!t) { router.push("/admin/login"); return; }
+    if (!t) { router.replace("/admin/login"); return; }
     setToken(t);
     Promise.all([adminGetProducts(t), adminGetCategories(t)])
       .then(([p, c]) => { setProducts(p); setCategories(c); })
-      .catch(() => router.push("/admin/login"))
+      .catch(() => router.replace("/admin/login"))
       .finally(() => setLoading(false));
   }, [router]);
 

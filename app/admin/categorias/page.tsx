@@ -11,6 +11,8 @@ export default function AdminCategoriasPage() {
   const router = useRouter();
   const [categories, setCategories] = useState<any[]>([]);
   const [token, setToken] = useState("");
+  const [ready, setReady] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({
@@ -21,10 +23,19 @@ export default function AdminCategoriasPage() {
   useEffect(() => {
     setReady(true);
     const t = localStorage.getItem("admin_token");
-    if (!t) { router.push("/admin/login"); return; }
+    if (!t) { router.replace("/admin/login"); return; }
     setToken(t);
-    adminGetCategories(t).then(setCategories).catch(() => router.push("/admin/login"));
+    adminGetCategories(t)
+      .then(setCategories)
+      .catch(() => { localStorage.removeItem("admin_token"); router.replace("/admin/login"); })
+      .finally(() => setLoading(false));
   }, [router]);
+
+  if (!ready || loading) return (
+    <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"/>
+    </div>
+  );
 
   const handleSubmit = async () => {
     try {
