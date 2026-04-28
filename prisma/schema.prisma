@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Store {
+  id            Int      @id @default(autoincrement())
+  name          String   @default("Nice Joyería")
+  heroTitle     String?
+  heroSubtitle  String?
+  heroImageUrl  String?
+  mission       String?
+  history       String?
+  values        Json?
+  timeline      Json?
+  socials       Json?
+  shippingMxMxn Float    @default(180)
+  shippingUsUsd Float    @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  slug      String    @unique
+  hasSizes  Boolean   @default(false)
+  hasColors Boolean   @default(true)
+  sizes     String[]
+  colors    String[]  @default(["Oro", "Plata", "Oro rosa"])
+  isActive  Boolean   @default(true)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id                  Int         @id @default(autoincrement())
+  name                String
+  subtitle            String?
+  ribbon              String?
+  description         String
+  descriptionLong     String?
+  priceUsd            Float
+  priceMxn            Float
+  discountPrice       Float?
+  sku                 String?
+  weightGr            Float?
+  material            String?
+  stock               Int         @default(2)
+  trackStock          Boolean     @default(true)
+  imageUrl            String?
+  imageUrls           String[]
+  categoryId          Int?
+  category            Category?   @relation(fields: [categoryId], references: [id])
+  availableSizes      String[]
+  availableColors     String[]    @default(["Oro", "Plata", "Oro rosa"])
+  customFieldLabel    String?
+  customFieldRequired Boolean     @default(false)
+  isActive            Boolean     @default(true)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  orderItems          OrderItem[]
+}
+
+model Order {
+  id                       Int         @id @default(autoincrement())
+  buyerWallet              String
+  txHash                   String      @unique
+  paymentToken             String
+  amountToken              Float
+  totalUsd                 Float
+  totalMxn                 Float
+  shippingCostMxn          Float       @default(180)
+  status                   OrderStatus @default(PENDING)
+  shippingAddressEncrypted String
+  shippingCountry          String
+  trackingNumber           String?
+  adminNotes               String?
+  customFieldValue         String?
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
+  items                    OrderItem[]
+}
+
+model OrderItem {
+  id            Int     @id @default(autoincrement())
+  orderId       Int
+  order         Order   @relation(fields: [orderId], references: [id])
+  productId     Int
+  product       Product @relation(fields: [productId], references: [id])
+  productName   String
+  quantity      Int
+  unitPriceUsd  Float
+  unitPriceMxn  Float
+  selectedSize  String?
+  selectedColor String?
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
