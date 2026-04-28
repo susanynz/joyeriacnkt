@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "mysql"   
+  url      = mysql://u558884238_susbelynz:PASSWORD@localhost:3306/u558884238_joyeriacnkt
 }
 
 model Store {
