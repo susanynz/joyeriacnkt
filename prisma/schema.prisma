@@ -3,18 +3,18 @@ generator client {
 }
 
 datasource db {
-  provider = "mysql"   
-  url      = mysql://u558884238_susbelynz:PASSWORD@localhost:3306/u558884238_joyeriacnkt
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model Store {
   id            Int      @id @default(autoincrement())
   name          String   @default("Nice Joyería")
-  heroTitle     String?
-  heroSubtitle  String?
-  heroImageUrl  String?
-  mission       String?
-  history       String?
+  heroTitle     String?  @db.Text
+  heroSubtitle  String?  @db.Text
+  heroImageUrl  String?  @db.Text
+  mission       String?  @db.Text
+  history       String?  @db.LongText
   values        Json?
   timeline      Json?
   socials       Json?
@@ -30,8 +30,8 @@ model Category {
   slug      String    @unique
   hasSizes  Boolean   @default(false)
   hasColors Boolean   @default(true)
-  sizes     String[]
-  colors    String[]  @default(["Oro", "Plata", "Oro rosa"])
+  sizes     String?   @db.Text
+  colors    String?   @db.Text
   isActive  Boolean   @default(true)
   products  Product[]
   createdAt DateTime  @default(now())
@@ -39,31 +39,31 @@ model Category {
 }
 
 model Product {
-  id                  Int         @id @default(autoincrement())
+  id                  Int        @id @default(autoincrement())
   name                String
   subtitle            String?
   ribbon              String?
-  description         String
-  descriptionLong     String?
+  description         String     @db.Text
+  descriptionLong     String?    @db.LongText
   priceUsd            Float
   priceMxn            Float
   discountPrice       Float?
   sku                 String?
   weightGr            Float?
   material            String?
-  stock               Int         @default(2)
-  trackStock          Boolean     @default(true)
-  imageUrl            String?
-  imageUrls           String[]
+  stock               Int        @default(2)
+  trackStock          Boolean    @default(true)
+  imageUrl            String?    @db.Text
+  imageUrls           String?    @db.Text
   categoryId          Int?
-  category            Category?   @relation(fields: [categoryId], references: [id])
-  availableSizes      String[]
-  availableColors     String[]    @default(["Oro", "Plata", "Oro rosa"])
+  category            Category?  @relation(fields: [categoryId], references: [id])
+  availableSizes      String?    @db.Text
+  availableColors     String?    @db.Text
   customFieldLabel    String?
-  customFieldRequired Boolean     @default(false)
-  isActive            Boolean     @default(true)
-  createdAt           DateTime    @default(now())
-  updatedAt           DateTime    @updatedAt
+  customFieldRequired Boolean    @default(false)
+  isActive            Boolean    @default(true)
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
   orderItems          OrderItem[]
 }
 
@@ -77,11 +77,11 @@ model Order {
   totalMxn                 Float
   shippingCostMxn          Float       @default(180)
   status                   OrderStatus @default(PENDING)
-  shippingAddressEncrypted String
+  shippingAddressEncrypted String      @db.Text
   shippingCountry          String
   trackingNumber           String?
-  adminNotes               String?
-  customFieldValue         String?
+  adminNotes               String?     @db.Text
+  customFieldValue         String?     @db.Text
   createdAt                DateTime    @default(now())
   updatedAt                DateTime    @updatedAt
   items                    OrderItem[]
@@ -109,3 +109,4 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
 }
+
