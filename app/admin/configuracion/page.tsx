@@ -24,6 +24,7 @@ export default function AdminConfigPage() {
   });
 
   useEffect(() => {
+    setReady(true);
     const t = localStorage.getItem("admin_token");
     if (!t) { router.push("/admin/login"); return; }
     setToken(t);

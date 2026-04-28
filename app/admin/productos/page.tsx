@@ -10,6 +10,7 @@ export default function AdminProductosPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
   const [token, setToken] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -23,6 +24,7 @@ export default function AdminProductosPage() {
   });
 
   useEffect(() => {
+    setReady(true);
     const t = localStorage.getItem("admin_token");
     if (!t) { router.push("/admin/login"); return; }
     setToken(t);

@@ -7,12 +7,12 @@ import { adminGetOrders, adminGetProducts } from "@/lib/api";
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING: "Pendiente", CONFIRMED: "Confirmado", PREPARING: "Preparando",
-  SHIPPED: "Enviado", DELIVERED: "Entregado",
+  SHIPPED: "Enviado", DELIVERED: "Entregado", CANCELLED: "Cancelado",
 };
 const STATUS_COLOR: Record<string, string> = {
   PENDING: "bg-stone-100 text-stone-600", CONFIRMED: "bg-green-100 text-green-700",
   PREPARING: "bg-yellow-100 text-yellow-700", SHIPPED: "bg-blue-100 text-blue-700",
-  DELIVERED: "bg-stone-100 text-stone-700",
+  DELIVERED: "bg-stone-100 text-stone-700", CANCELLED: "bg-red-100 text-red-700",
 };
 
 export default function AdminDashboard() {
@@ -20,18 +20,31 @@ export default function AdminDashboard() {
   const [orders, setOrders] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false); // ← esperamos al cliente
 
   useEffect(() => {
+    // Solo corre en el cliente — localStorage existe aquí
+    setReady(true);
     const token = localStorage.getItem("admin_token");
-    if (!token) { router.push("/admin/login"); return; }
+    if (!token) {
+      router.replace("/admin/login");
+      return;
+    }
+
     Promise.all([adminGetOrders(token), adminGetProducts(token)])
       .then(([o, p]) => { setOrders(o); setProducts(p); })
-      .catch(() => router.push("/admin/login"))
+      .catch(() => {
+        localStorage.removeItem("admin_token");
+        router.replace("/admin/login");
+      })
       .finally(() => setLoading(false));
   }, [router]);
 
-  if (loading) return (
-    <div className="min-h-screen bg-stone-50 flex items-center justify-center text-stone-400">Cargando...</div>
+  // No renderizar nada hasta que el cliente esté listo
+  if (!ready || loading) return (
+    <div className="min-h-screen bg-stone-900 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"/>
+    </div>
   );
 
   const todayOrders = orders.filter(o => {
@@ -41,17 +54,26 @@ export default function AdminDashboard() {
   });
   const activeOrders = orders.filter(o => ["CONFIRMED", "PREPARING", "SHIPPED"].includes(o.status));
   const lowStock = products.filter(p => p.stock <= 2 && p.isActive);
-  const totalCnkt = orders.filter(o => o.paymentToken === "CNKT+").reduce((s: number, o: any) => s + o.amountToken, 0);
+  const totalCnkt = orders
+    .filter(o => o.paymentToken === "CNKT+")
+    .reduce((s: number, o: any) => s + o.amountToken, 0);
 
   return (
     <div className="min-h-screen bg-stone-50">
-      {/* Admin nav */}
       <nav className="bg-stone-900 px-6 py-4 flex items-center justify-between">
         <span className="text-white font-medium">✦ Nice Joyería · Admin</span>
         <div className="flex items-center gap-4">
-          <Link href="/" className="text-stone-400 hover:text-white text-sm transition-colors">Ver tienda ↗</Link>
-          <button onClick={() => { localStorage.removeItem("admin_token"); router.push("/admin/login"); }}
-            className="text-stone-400 hover:text-red-400 text-sm transition-colors">Salir</button>
+          <Link href="/" className="text-stone-400 hover:text-white text-sm transition-colors">
+            Ver tienda ↗
+          </Link>
+          <button
+            onClick={() => {
+              localStorage.removeItem("admin_token");
+              router.replace("/admin/login");
+            }}
+            className="text-stone-400 hover:text-red-400 text-sm transition-colors">
+            Salir
+          </button>
         </div>
       </nav>
 
@@ -61,7 +83,6 @@ export default function AdminDashboard() {
           <p className="text-stone-400 text-sm">Panel de gestión de Nice Joyería</p>
         </div>
 
-        {/* Métricas */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: "Pedidos hoy", value: todayOrders.length, sub: "nuevos" },
@@ -71,13 +92,14 @@ export default function AdminDashboard() {
           ].map(m => (
             <div key={m.label} className="bg-white rounded-2xl p-5 border border-stone-100">
               <p className="text-xs text-stone-400 mb-1">{m.label}</p>
-              <p className={`text-2xl font-semibold ${m.alert ? "text-red-500" : "text-stone-800"}`}>{m.value}</p>
+              <p className={`text-2xl font-semibold ${m.alert ? "text-red-500" : "text-stone-800"}`}>
+                {m.value}
+              </p>
               <p className="text-xs text-stone-400 mt-0.5">{m.sub}</p>
             </div>
           ))}
         </div>
 
-        {/* Accesos rápidos */}
         <div className="grid md:grid-cols-4 gap-3 mb-8">
           {[
             { label: "Gestionar pedidos", href: "/admin/pedidos", icon: "📦" },
@@ -94,11 +116,12 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {/* Pedidos recientes */}
         <div className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
           <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
             <h2 className="font-medium text-stone-800">Pedidos recientes</h2>
-            <Link href="/admin/pedidos" className="text-xs text-amber-700 hover:underline">Ver todos →</Link>
+            <Link href="/admin/pedidos" className="text-xs text-amber-700 hover:underline">
+              Ver todos →
+            </Link>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -117,7 +140,7 @@ export default function AdminDashboard() {
                   <tr key={order.id} className="border-b border-stone-50 hover:bg-stone-50 transition-colors">
                     <td className="px-5 py-3 text-stone-500">#{order.id}</td>
                     <td className="px-5 py-3 font-mono text-xs text-stone-500">
-                      {order.buyerWallet.slice(0,6)}...{order.buyerWallet.slice(-4)}
+                      {order.buyerWallet.slice(0, 6)}...{order.buyerWallet.slice(-4)}
                     </td>
                     <td className="px-5 py-3">
                       <span className={`font-medium text-xs ${order.paymentToken === "CNKT+" ? "text-amber-700" : "text-green-700"}`}>
@@ -134,7 +157,11 @@ export default function AdminDashboard() {
                   </tr>
                 ))}
                 {orders.length === 0 && (
-                  <tr><td colSpan={6} className="px-5 py-8 text-center text-stone-400 text-sm">Sin pedidos aún</td></tr>
+                  <tr>
+                    <td colSpan={6} className="px-5 py-8 text-center text-stone-400 text-sm">
+                      Sin pedidos aún
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>

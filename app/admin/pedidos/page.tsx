@@ -20,6 +20,7 @@ export default function AdminPedidosPage() {
   const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ready, setReady] = useState(false);
   const [filterStatus, setFilterStatus] = useState("");
   const [filterCountry, setFilterCountry] = useState("");
   const [expandedAddress, setExpandedAddress] = useState<Record<number, any>>({});
@@ -27,19 +28,15 @@ export default function AdminPedidosPage() {
   const [token, setToken] = useState("");
 
   useEffect(() => {
+    setReady(true);
     const t = localStorage.getItem("admin_token");
-    if (!t) { router.push("/admin/login"); return; }
+    if (!t) { router.replace("/admin/login"); return; }
     setToken(t);
-    loadOrders(t);
-  }, [router]);
-
-  const loadOrders = (t: string, status?: string) => {
-    setLoading(true);
-    adminGetOrders(t, status)
+    adminGetOrders(t)
       .then(setOrders)
-      .catch(() => router.push("/admin/login"))
+      .catch(() => { localStorage.removeItem("admin_token"); router.replace("/admin/login"); })
       .finally(() => setLoading(false));
-  };
+  }, [router]);
 
   const handleViewAddress = async (orderId: number) => {
     if (expandedAddress[orderId]) {
@@ -61,6 +58,12 @@ export default function AdminPedidosPage() {
     finally { setUpdatingId(null); }
   };
 
+  if (!ready || loading) return (
+    <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"/>
+    </div>
+  );
+
   const filtered = orders.filter(o =>
     (!filterStatus || o.status === filterStatus) &&
     (!filterCountry || o.shippingCountry === filterCountry)
@@ -72,7 +75,6 @@ export default function AdminPedidosPage() {
         <Link href="/admin" className="text-stone-400 hover:text-white text-sm">← Dashboard</Link>
         <span className="text-white font-medium">Pedidos</span>
       </nav>
-
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -80,8 +82,6 @@ export default function AdminPedidosPage() {
             <p className="text-stone-400 text-sm">{filtered.length} pedidos</p>
           </div>
         </div>
-
-        {/* Filtros */}
         <div className="flex gap-3 flex-wrap mb-6">
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
             className="border border-stone-200 rounded-xl px-4 py-2 text-sm bg-white focus:outline-none focus:border-amber-400">
@@ -95,11 +95,8 @@ export default function AdminPedidosPage() {
             <option value="US">🇺🇸 USA</option>
           </select>
         </div>
-
         <div className="space-y-4">
-          {loading ? (
-            <div className="text-center py-12 text-stone-400">Cargando pedidos...</div>
-          ) : filtered.map(order => (
+          {filtered.map(order => (
             <div key={order.id} className="bg-white rounded-2xl border border-stone-100 overflow-hidden">
               <div className="px-5 py-4 flex items-start justify-between gap-4">
                 <div className="flex-1">
@@ -115,22 +112,15 @@ export default function AdminPedidosPage() {
                   <div className="text-xs text-stone-500 font-mono mb-2">{order.buyerWallet}</div>
                   <div className="flex gap-4 text-sm">
                     <span className={`font-medium ${order.paymentToken === "CNKT+" ? "text-amber-700" : "text-green-700"}`}>
-                      {order.amountToken.toLocaleString()} {order.paymentToken}
+                      {order.amountToken?.toLocaleString()} {order.paymentToken}
                     </span>
-                    <span className="text-stone-500">${order.totalUsd.toFixed(2)} USD</span>
-                    <span>{order.shippingCountry === "MX" ? "🇲🇽 México · $180 MXN envío" : "🇺🇸 USA"}</span>
+                    <span className="text-stone-500">${order.totalUsd?.toFixed(2)} USD</span>
+                    <span>{order.shippingCountry === "MX" ? "🇲🇽 México" : "🇺🇸 USA"}</span>
                   </div>
-                  {order.items && (
-                    <div className="mt-2 text-xs text-stone-400">
-                      {order.items.map((i: any) => `${i.productName} ×${i.quantity}${i.selectedColor ? ` (${i.selectedColor})` : ""}`).join(" · ")}
-                    </div>
-                  )}
                   {order.trackingNumber && (
                     <p className="text-xs text-blue-600 mt-1">Guía: {order.trackingNumber}</p>
                   )}
                 </div>
-
-                {/* Acciones */}
                 <div className="flex flex-col gap-2 flex-shrink-0">
                   <button onClick={() => handleViewAddress(order.id)}
                     className="text-xs border border-stone-200 hover:border-amber-400 hover:text-amber-700 text-stone-500 px-3 py-1.5 rounded-lg transition-colors">
@@ -142,8 +132,6 @@ export default function AdminPedidosPage() {
                   </a>
                 </div>
               </div>
-
-              {/* Dirección expandida */}
               {expandedAddress[order.id] && (
                 <div className="px-5 py-3 bg-amber-50 border-t border-amber-100 text-sm text-stone-700">
                   <p className="font-medium mb-1 text-amber-800">📍 Dirección de envío</p>
@@ -154,8 +142,6 @@ export default function AdminPedidosPage() {
                   <p className="text-stone-500">Tel: {expandedAddress[order.id].phone}</p>
                 </div>
               )}
-
-              {/* Actualizar status */}
               <div className="px-5 py-3 bg-stone-50 border-t border-stone-100 flex items-center gap-3 flex-wrap">
                 <span className="text-xs text-stone-400">Cambiar a:</span>
                 {STATUSES.filter(s => s !== order.status).map(s => (
@@ -175,7 +161,7 @@ export default function AdminPedidosPage() {
               </div>
             </div>
           ))}
-          {!loading && filtered.length === 0 && (
+          {filtered.length === 0 && (
             <div className="text-center py-16 text-stone-400 text-sm">Sin pedidos con este filtro</div>
           )}
         </div>

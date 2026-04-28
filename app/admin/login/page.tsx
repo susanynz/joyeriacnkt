@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { adminLogin } from "@/lib/api";
 
@@ -9,6 +9,17 @@ export default function AdminLoginPage() {
   const [secret, setSecret] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    // Si ya tiene token válido, redirigir al dashboard
+    const token = localStorage.getItem("admin_token");
+    if (token) {
+      router.replace("/admin");
+    } else {
+      setChecking(false);
+    }
+  }, [router]);
 
   const handleLogin = async () => {
     if (!secret) return setError("Ingresa la clave");
@@ -17,13 +28,19 @@ export default function AdminLoginPage() {
     try {
       const { token } = await adminLogin(secret);
       localStorage.setItem("admin_token", token);
-      router.push("/admin");
+      router.replace("/admin");
     } catch {
       setError("Clave incorrecta");
     } finally {
       setLoading(false);
     }
   };
+
+  if (checking) return (
+    <div className="min-h-screen bg-stone-900 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"/>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-stone-900 flex items-center justify-center px-4">
@@ -46,7 +63,9 @@ export default function AdminLoginPage() {
             />
           </div>
           {error && <p className="text-red-500 text-xs">{error}</p>}
-          <button onClick={handleLogin} disabled={loading}
+          <button
+            onClick={handleLogin}
+            disabled={loading}
             className="w-full bg-stone-900 hover:bg-amber-800 disabled:opacity-50 text-white py-3 rounded-xl text-sm font-medium transition-colors">
             {loading ? "Verificando..." : "Entrar al panel"}
           </button>
