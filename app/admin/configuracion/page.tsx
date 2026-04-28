@@ -10,6 +10,8 @@ export default function AdminConfigPage() {
   const [token, setToken] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [config, setConfig] = useState({
     name: "Nice Joyería",
@@ -19,7 +21,7 @@ export default function AdminConfigPage() {
     mission: "",
     history: "",
     shippingMxMxn: 180,
-    shippingUsDollars: 0,
+    shippingUsUsd: 0,
     socials: { telegram: "", instagram: "", tiktok: "", facebook: "", twitter: "" },
   });
 
@@ -28,12 +30,15 @@ export default function AdminConfigPage() {
     const t = localStorage.getItem("admin_token");
     if (!t) { router.replace("/admin/login"); return; }
     setToken(t);
-    getStoreConfig().then((data: any) => {
-      setConfig(prev => ({
-        ...prev, ...data,
-        socials: { telegram: "", instagram: "", tiktok: "", facebook: "", twitter: "", ...(data.socials || {}) },
-      }));
-    }).catch(() => {});
+    getStoreConfig()
+      .then((data: any) => {
+        setConfig(prev => ({
+          ...prev, ...data,
+          socials: { telegram: "", instagram: "", tiktok: "", facebook: "", twitter: "", ...(data.socials || {}) },
+        }));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [router]);
 
   const handleSave = async () => {
@@ -52,6 +57,12 @@ export default function AdminConfigPage() {
   const handleSocialChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setConfig(p => ({ ...p, socials: { ...p.socials, [e.target.name]: e.target.value } }));
 
+  if (!ready || loading) return (
+    <div className="min-h-screen bg-stone-50 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-amber-600 border-t-transparent rounded-full animate-spin"/>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-stone-50">
       <nav className="bg-stone-900 px-6 py-4 flex items-center justify-between">
@@ -68,7 +79,6 @@ export default function AdminConfigPage() {
 
       <div className="max-w-2xl mx-auto px-6 py-8 space-y-6">
 
-        {/* Homepage */}
         <div className="bg-white rounded-2xl border border-stone-100 p-6">
           <h2 className="font-medium text-stone-800 mb-4">Portada (Homepage)</h2>
           <div className="space-y-4">
@@ -93,7 +103,6 @@ export default function AdminConfigPage() {
           </div>
         </div>
 
-        {/* Nosotros */}
         <div className="bg-white rounded-2xl border border-stone-100 p-6">
           <h2 className="font-medium text-stone-800 mb-4">Página Nosotros</h2>
           <div className="space-y-4">
@@ -112,27 +121,25 @@ export default function AdminConfigPage() {
           </div>
         </div>
 
-        {/* Envíos */}
         <div className="bg-white rounded-2xl border border-stone-100 p-6">
           <h2 className="font-medium text-stone-800 mb-4">Costos de envío</h2>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs text-stone-500 block mb-1">México (MXN)</label>
-              <input type="number" name="shippingMxMxn" value={config.shippingMxMxn}
+              <input type="number" value={config.shippingMxMxn}
                 onChange={e => setConfig(p => ({ ...p, shippingMxMxn: parseFloat(e.target.value) }))}
                 className="w-full border border-stone-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400 bg-stone-50"/>
             </div>
             <div>
               <label className="text-xs text-stone-500 block mb-1">USA (USD)</label>
-              <input type="number" name="shippingUsDollars" value={config.shippingUsDollars}
-                onChange={e => setConfig(p => ({ ...p, shippingUsDollars: parseFloat(e.target.value) }))}
+              <input type="number" value={config.shippingUsUsd}
+                onChange={e => setConfig(p => ({ ...p, shippingUsUsd: parseFloat(e.target.value) }))}
                 placeholder="0 = por definir"
                 className="w-full border border-stone-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-amber-400 bg-stone-50"/>
             </div>
           </div>
         </div>
 
-        {/* Redes sociales */}
         <div className="bg-white rounded-2xl border border-stone-100 p-6">
           <h2 className="font-medium text-stone-800 mb-4">Redes sociales</h2>
           <div className="space-y-3">
